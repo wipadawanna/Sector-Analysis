@@ -5,16 +5,24 @@ from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 from sklearn import preprocessing
 
-def read_data(directory_str,sheet_index):
-    df = pd.read_excel(directory_str,sheet_index)
-    df.index = df.iloc[:,0]
-    df = df.iloc[:,[1]]
+def read_data(directory_str,sheet_index=0):
+    data = pd.read_excel(directory_str,sheet_index)
+    # df.index = df.iloc[:,0]
+    # df = df.iloc[:,[1]]
+    # df = df.dropna()
+    # # convert index to pd.DatetimeIndex
+    # if type(df.index) != pd.DatetimeIndex:
+    #     df.index = pd.DatetimeIndex(df.index)
+    # df = df.replace(".",np.nan)
+    # return df
+    df = pd.DataFrame(pd.to_numeric(data.iloc[:,1].replace(".",np.nan)).values,index = data.iloc[:,0].values)
+    df.columns = data.iloc[:,[1]].columns
     df = df.dropna()
     # convert index to pd.DatetimeIndex
     if type(df.index) != pd.DatetimeIndex:
         df.index = pd.DatetimeIndex(df.index)
-    df = df.replace(".",np.nan)
     return df
+
 
 def read_csv(directory_str):
     data = pd.read_csv(directory_str)
@@ -102,13 +110,22 @@ def logistic_reg_sector_index(data_set_selection, sector_ind, base_benchmark,
 
     return(sector_str_name,score.values[0], logistic)
 
+### Directory settings
+current_dir = os.getcwd()
+os.chdir("..")
+benchmark_dir_str = os.path.join(os.getcwd(), 'data/CFRM521_final_project/').replace('\\','/')
+bldata_dir_str = benchmark_dir_str + 'BL_Econ/'
+econ_dir_str = os.path.join(os.getcwd(), 'data/Economics/').replace('\\','/')
+shelve_dir = os.path.join(os.getcwd(), 'tmp/').replace('\\','/')
+os.chdir(current_dir)
 
-econ_dir_str = os.path.join(os.getcwd(),'../data/Economics/')
-benchmark_str = econ_dir_str+'benchmark_data.xlsx'
+benchmark_str = benchmark_dir_str+'benchmark_data.xlsx'
 spx_str = econ_dir_str+'SP500.csv'
 
 csv_name_list = ['CPI.csv','GDP.csv','DGS10.csv','HPI.csv','PAYEMS.csv','TEDRATE.csv','FEDFUNDS.csv','NETEXP.csv',
 'PCE.csv','UNRATE.csv','CSENT.csv','OAS.csv','RECESSION.csv','VIXCLS.csv']
+
+bldata_name_list = ['OIL.xlsx', 'YIELD_SLOPE.xlsx', 'GOLD.xlsx']
 # read csv files, put it into monthly series
 for file_name in csv_name_list:
 	file_dir_str = econ_dir_str+file_name
@@ -116,11 +133,20 @@ for file_name in csv_name_list:
 	print(variable_name+"defined")
 	exec(variable_name+"= quaterly_to_monthly(read_csv('"+file_dir_str+"'))")
 
+for file_name in bldata_name_list:
+    file_dir_str = bldata_dir_str + file_name
+    variable_name = file_name.split(".")[0]
+    print(variable_name+"defined")
+    exec(variable_name+"= quaterly_to_monthly(read_data('"+file_dir_str+"'))")    
+
 spx = read_csv(spx_str).resample("M").last()
 spx_ret = spx.apply(np.log).diff().dropna()
 
 
-data_set_selection = [CPI,GDP,HPI,DGS10,TEDRATE,FEDFUNDS,PCE,UNRATE,RECESSION,VIXCLS]
+data_set_selection = [CPI,GDP,HPI,DGS10,TEDRATE,FEDFUNDS,PCE,UNRATE,RECESSION,VIXCLS,OIL,YIELD_SLOPE,GOLD]
 
-#Call
-#logistic_reg_sector_index(data_set_selection, sector_ind, base_benchmark=spx_ret, print_plot=False)
+
+## Save data_set_selection to shelve
+print shelve_dir + 'data_set_selection.out'
+file_shelve = shelve_dir + 'data_set_selection.out'
+store_variable(file_shelve, ['data_set_selection'], {'data_set_selection': data_set_selection}, option = 'n')
