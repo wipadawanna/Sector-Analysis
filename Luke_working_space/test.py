@@ -104,8 +104,9 @@ def logistic_reg_sector_index(data_set_selection, sector_ind, base_benchmark,
 
 
 econ_dir_str = os.path.join(os.getcwd(),'../data/Economics/')
-benchmark_str = econ_dir_str+'benchmark_data.xlsx'
-spx_str = econ_dir_str+'SP500.csv'
+CFRM521_final_project_dir_str = os.path.join(os.getcwd(),'../data/CFRM521_final_project/')
+benchmark_str = CFRM521_final_project_dir_str+'benchmark_data.xlsx'
+spx_str = CFRM521_final_project_dir_str+'SPX500.csv'
 
 csv_name_list = ['CPI.csv','GDP.csv','DGS10.csv','HPI.csv','PAYEMS.csv','TEDRATE.csv','FEDFUNDS.csv','NETEXP.csv',
 'PCE.csv','UNRATE.csv','CSENT.csv','OAS.csv','RECESSION.csv','VIXCLS.csv']
