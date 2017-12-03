@@ -18,7 +18,6 @@ def store_variable(shelve_dir, current_variable_names, variables_dict, option = 
 def retrieve_variable(shelve_dir, key):
     filename = shelve_dir
     my_shelf = shelve.open(filename)
-    
 
     if key in my_shelf.keys():
         tmp = my_shelf[key]
@@ -26,4 +25,4 @@ def retrieve_variable(shelve_dir, key):
         print('Retrieved Successfully')
         return tmp
     print('Retrieved Failed')
-    return NULL
+    return ''
