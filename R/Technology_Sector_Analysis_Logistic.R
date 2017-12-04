@@ -44,3 +44,7 @@ plot(y = logistic_xts$beat_mkt, x = index(logistic_xts), type = "l",
 lines(y = reduced_model$fitted.values, x = index(logistic_xts), col = "red")
 text(y = 1.05, x = index(logistic_xts)[N/2], labels = paste0("Accuracy=", acc_reduced), col = "blue")
 
+
+#### ref: https://stats.stackexchange.com/questions/5304/why-is-there-a-difference-between-manually-calculating-a-logistic-regression-95
+plot(simple_model,which=1)
+exp(confint(simple_model)) # Confidence Interval
