@@ -2,3 +2,4 @@ data/CFRM521_final_project/
 .ipynb_checkpoints/
 lib/env/__init__.pyc
 *.pyc
+R/.Rhistory
