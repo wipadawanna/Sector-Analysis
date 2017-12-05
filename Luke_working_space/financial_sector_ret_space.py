@@ -21,19 +21,11 @@ for csv_file in csv_name_list:
     var_name = csv_file.split(".")[0]
     exec(var_name+" = read_csv( '"+econ_dir_str+csv_file+"',scale = False )")
 
-# # take some series to be returns
-# GDP_ret = GDP.shift()/GDP-1
-# GDP_ret = quaterly_to_monthly(GDP_ret.dropna())
-# GDP_ret.columns=[map(str,GDP.columns)[0]+"_ret"]
-
-# PCE = PCE.resample("M").last()
-# PCE_ret = (PCE.shift()/PCE -1).dropna()
-# PCE_ret.columns = [map(str,PCE.columns)[0]+"_ret"]
 
 # BLB econ data
-# for excel_file in bldata_name_list:
-#     var_name = excel_file.split(".")[0]
-#     exec(var_name+" = read_data( '" + bldata_dir_str+excel_file+"',scale = False )")
+for excel_file in bldata_name_list:
+    var_name = excel_file.split(".")[0]
+    exec(var_name+" = read_data( '" + bldata_dir_str+excel_file+"',scale = False )")
 
 # blb_list = map(lambda x:x.split(".")[0],bldata_name_list)
 
@@ -60,15 +52,15 @@ for csv_file in csv_name_list:
 
 # y variable
 
-# sector_ind = read_data(benchmark_str,8)
-# sector_ind_ret = (sector_ind.shift()/sector_ind - 1).dropna()
-# # sector_ind_ret.head()
-# spx_ind = read_csv(spx_str)
-# spx_ind_ret = (spx_ind.shift()/spx_ind - 1).dropna()
-# # spx_ind_ret.head()
-# sector_ind_ret,spx_ind_ret = model_data(sector_ind_ret,spx_ind_ret)
+sector_ind = read_data(benchmark_str,8)
+sector_ind_ret = (sector_ind.shift()/sector_ind - 1).dropna()
+# sector_ind_ret.head()
+spx_ind = read_csv(spx_str)
+spx_ind_ret = (spx_ind.shift()/spx_ind - 1).dropna()
+# spx_ind_ret.head()
+sector_ind_ret,spx_ind_ret = model_data(sector_ind_ret,spx_ind_ret)
 
-# sector_beat_spx = pd.DataFrame((sector_ind_ret.values>spx_ind_ret.values),index = sector_ind_ret.index)*1
+sector_beat_spx = pd.DataFrame((sector_ind_ret.values>spx_ind_ret.values),index = sector_ind_ret.index)*1
 # sector_beat_spx.columns = ['sector_beat_spx']
 # # sector_beat_spx.head(2)
 

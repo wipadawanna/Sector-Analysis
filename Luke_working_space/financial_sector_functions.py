@@ -91,6 +91,8 @@ def evaluate_metric(y_true,y_pred,function='mse'):
         metric_value = metrics.r2_score(y_true, y_pred)
     elif function =='acf':
         metric_value = accuracy_score_function(y_true, y_pred)
+    if type(metric_value)==pd.Series:
+        metric_value = metric_value.values[0]
     return metric_value
 
 def return_column(dataframe,column_str):
