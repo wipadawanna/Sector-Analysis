@@ -148,6 +148,10 @@ for (file in files_name){
   merge_xts_excess <- merge.xts(merge_xts_excess, get(file), join='inner')
 }
 
+#**************************************
+save(merge_xts, file="merge_xts.rdata")
+save(merge_xts_excess, file="merge_xts_excess.rdata")
+
 enhance_model <- lm(benchmark~., data = merge_xts)
 enhance_res <- summary(enhance_model)
 enhance_res
