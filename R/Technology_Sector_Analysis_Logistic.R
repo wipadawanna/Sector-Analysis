@@ -90,8 +90,10 @@ conf_level <- function(alpha, model, df_input, attr_list, N = 100000){
               prob = beating_prob))
 }
 
+#############################################################
 ## Test on data
-testdata <- logistic_xts[nrow(logistic_xts)-100, ]
+textIndex <- nrow(logistic_xts)-30
+testdata <- logistic_xts[textIndex, ]
 return_list <- conf_level(alpha = 0.95, model = reduced_model_sum, 
                     df_input = testdata, 
                     attr_list = rownames(coef(reduced_model_sum)))
@@ -99,6 +101,8 @@ hist(return_list$prob, breaks = 100,
      freq = TRUE, col = "yellow", xlab = "Probability", main = paste0("Histogram of Beating Probability \n
      Expected = ", round(return_list$conf_level[1], 4)))
 return_list$conf_level
+
+reduced_model$fitted.values[textIndex]
 
 ##############################################################
 
