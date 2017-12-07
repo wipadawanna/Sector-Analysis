@@ -21,8 +21,12 @@ N <- nrow(used_data_xts)
 beat_mkt <- as.numeric(used_data_xts$excess_ret > 0)
 logistic_xts <- used_data_xts[, -c(col_ind(used_data_xts, "excess_ret"))]
 tmpcol <- colnames(logistic_xts)
-logistic_xts <- cbind(logistic_xts, beat_mkt)
-colnames(logistic_xts) <- c(tmpcol, "beat_mkt")
+logistic_xts <- cbind(beat_mkt, logistic_xts)
+colnames(logistic_xts) <- c("beat_mkt", tmpcol)
+
+#********
+table_writing <- data.frame("Date" = as.Date(index(logistic_xts)), coredata(logistic_xts))
+write.csv(table_writing, "input_data_tech.csv", row.names = F)
 
 simple_model <- glm(beat_mkt~.-1, family = "binomial", data = logistic_xts)
 simple_model_sum <- summary(simple_model)
