@@ -24,6 +24,8 @@ tmpcol <- colnames(logistic_xts)
 logistic_xts <- cbind(beat_mkt, logistic_xts)
 colnames(logistic_xts) <- c("beat_mkt", tmpcol)
 
+save(file = "logistic_xts.rdata", logistic_xts)
+
 #********
 table_writing <- data.frame("Date" = as.Date(index(logistic_xts)), coredata(logistic_xts))
 write.csv(table_writing, "input_data_tech.csv", row.names = F)
