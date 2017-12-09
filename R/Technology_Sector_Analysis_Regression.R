@@ -1,4 +1,5 @@
 rm(list = ls())
+source("Performance_Analysis.R")
 library(stats)
 library(xts)
 library(quantmod)
@@ -44,14 +45,20 @@ dat_xts <- xts(dat_data[-c(1:3),], order.by = dat_timestamp)
 save(dat_xts, file="dat_xts.rdata")
 
 ############################################
-
-plot(dat_xts$benchmark,
-     type = "l", ylab = "return", xlab = "Date", main = "IYW vs SP500")
-lines(dat_xts$SP500, col = "red")
-text(y = 0.15, x = dat_timestamp[length(dat_timestamp)-10], 
+png(filename = "Graphs/IYW_vs_SP500.png",
+    width = 7, height = 5, units = "in", res = 350)
+N <- length(index(dat_xts))
+plot(y = dat_xts$benchmark, x = as.Date(index(dat_xts)), xaxt="n",
+     type = "l", ylab = "return", main = "IYW vs SP500", xlab = "", cex.axis = 0.8)
+axis(1, at=as.Date(index(dat_xts))[seq(2, N, by = 10)], 
+     labels=as.Date(index(dat_xts))[seq(2, N, by = 10)], las = 2, cex.axis = 0.8)
+grid()
+lines(y = dat_xts$SP500, x = as.Date(index(dat_xts)), col = "red")
+text(y = -0.2, x = as.Date("2010-01-01"), 
      labels = paste0("Cor = ", cor(dat_xts$benchmark, dat_xts$SP500)), col = "blue")
-legend("top", bty = 'n', legend = c("IYW", "SP500"), col=c("black", "red"), lty = 1, lwd = 2)
-
+legend("topright", bty = 'n', legend = c("IYW", "SP500"), 
+       col=c("black", "red"), lty = 1, lwd = 2)
+dev.off()
 ##################################################################################
 ########################## Linear Regression #####################################
 ########################## Simple IYW Return #####################################
@@ -67,24 +74,14 @@ simple_res_reduce <- summary(simple_model_reduce)
 simple_res_reduce
 vif(simple_model_reduce)
 
-plot_lm_actual_fitted <- function(fitted, actual, timestamp, r2, plotname){
-  plot(y = fitted, x = timestamp, 
-       type = "l", ylim = c(min(c(fitted,actual)), max(c(fitted,actual))+0.03), 
-       main = plotname, ylab = "return", xlab = "Date")
-  lines(y = actual, x = timestamp, col = "red")
-  text(y = max(c(fitted,actual)), x = timestamp[length(timestamp)-10], 
-       labels = paste0("R2 = ", r2), col = "blue")
-  legend("top", bty = 'n', legend = c("Fitted", "Realized"), 
-         col=c("black", "red"), lty = 1, lwd = 2)
-  grid()
-}
-
+png(filename = "Graphs/IYW_linear_reg_simple.png",
+    width = 7, height = 5, units = "in", res = 350)
 plot_lm_actual_fitted(simple_model$fitted.values, 
                       dat_xts$benchmark, 
                       dat_timestamp, 
                       simple_res$r.squared,
-                      "IYW - Full Model Realized vs Fitted")
-
+                      "IYW - Linear Regression: Realized vs Fitted")
+dev.off()
 
 plot_lm_actual_fitted(simple_model_reduce$fitted.values, 
                       dat_xts$benchmark, 
@@ -148,14 +145,27 @@ for (file in files_name){
   merge_xts_excess <- merge.xts(merge_xts_excess, get(file), join='inner')
 }
 
+logistic_bool <- as.numeric(merge_xts_excess$excess_ret > 0)
+logistic_xts <- cbind("beat_mkt" = logistic_bool, 
+                                 merge_xts_excess[, -c(col_ind(merge_xts_excess, "excess_ret"))])
 #**************************************
 save(merge_xts, file="merge_xts.rdata")
 save(merge_xts_excess, file="merge_xts_excess.rdata")
+save(logistic_xts, file = "logistic_xts.rdata")
 
 enhance_model <- lm(benchmark~., data = merge_xts)
 enhance_res <- summary(enhance_model)
 enhance_res
 vif(enhance_model)
+
+png(filename = "Graphs/IYW_linear_reg_withPPI.png",
+    width = 7, height = 5, units = "in", res = 350)
+plot_lm_actual_fitted(enhance_model$fitted.values, 
+                      merge_xts$benchmark, 
+                      dat_timestamp, 
+                      enhance_res$r.squared,
+                      "IYW - Regression Model w/ PPI: Realized vs Fitted")
+dev.off()
 
 enhance_model_reduce <- lm(benchmark
                            ~ CSUSHPINSA+FEDFUNDS+PCE+XOI.Index+CSENT+PAYEMS+SP500+TELECOMEXPORT+PPI_SOFTWARE

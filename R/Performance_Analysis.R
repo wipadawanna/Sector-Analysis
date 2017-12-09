@@ -1,4 +1,18 @@
-
+plot_lm_actual_fitted <- function(fitted, actual, timestamp, r2, plotname){
+  plot(y = fitted, x = timestamp, xaxt="n",
+       type = "l", ylab = "return", main = plotname, xlab = "", 
+       cex.axis = 0.8, ylim = c(min(c(fitted,actual)), max(c(fitted,actual))+0.03))
+  axis(1, at=as.Date(timestamp)[seq(2, length(timestamp), by = 10)], 
+       labels=as.Date(timestamp)[seq(2, length(timestamp), by = 10)],
+       las = 2, cex.axis = 0.8)
+  grid()
+  lines(y = actual, x = timestamp, col = "red")
+  text(y = max(c(fitted,actual)), x = timestamp[length(timestamp)-10], 
+       labels = paste0("R2 = ", r2), col = "blue")
+  legend("top", bty = 'n', legend = c("Fitted", "Realized"), 
+         col=c("black", "red"), lty = 1, lwd = 2)
+  
+}
 
 plot_model_performance <- function(input_xts, train_windows, predict_window, 
                                    result_set, alpha = NA, accuracy){
