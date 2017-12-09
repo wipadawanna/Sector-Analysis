@@ -49,10 +49,10 @@ for excel_file in bldata_name_list:
 # y variable
 
 sector_ind = read_data(benchmark_str,8)
-sector_ind_ret = (sector_ind.shift()/sector_ind - 1).dropna()
+sector_ind_ret = ((sector_ind.shift(-1)/sector_ind)-1).dropna()
 # sector_ind_ret.head()
 spx_ind = read_csv(spx_str)
-spx_ind_ret = (spx_ind.shift()/spx_ind - 1).dropna()
+spx_ind_ret = ((spx_ind.shift(-1)/spx_ind) -1).dropna()
 # spx_ind_ret.head()
 sector_ind_ret,spx_ind_ret = model_data(sector_ind_ret,spx_ind_ret)
 
