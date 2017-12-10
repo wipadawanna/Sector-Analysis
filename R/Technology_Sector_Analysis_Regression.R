@@ -150,6 +150,9 @@ logistic_xts <- cbind("beat_mkt" = logistic_bool,
                                  merge_xts_excess[, -c(col_ind(merge_xts_excess, "excess_ret"))])
 #**************************************
 save(merge_xts, file="merge_xts.rdata")
+# write.csv(
+#   data.frame("Date"=as.Date(index(merge_xts)), coredata(merge_xts)), 
+#   file = "tech_raw_data.csv", row.names = F)
 save(merge_xts_excess, file="merge_xts_excess.rdata")
 save(logistic_xts, file = "logistic_xts.rdata")
 
