@@ -1,0 +1,55 @@
+\documentclass[12pt]{amsart}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage[all]{xy}
+\usepackage{epstopdf}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+
+% these packages make it easy to include figures in the text. 
+\usepackage{float}
+\restylefloat{figure}
+
+\newcommand{\lt}{\left}
+\newcommand{\rt}{\right}
+\newcommand{\la}{\lt\langle}
+\newcommand{\ra}{\rt\rangle}
+\newcommand{\ip}[1]{\la #1 \ra}
+\newcommand{\T}{^{\mathsf{T}}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cC}{\mathcal{C}}
+\newcommand{\cF}{\mathcal{F}}
+
+\DeclareMathOperator*{\argmin}{argmin}
+
+\begin{document}
+{\bf \Large AMATH 521 Final Project}\\
+\begin{center}
+{\bf \Large Topic: Sector Outperformance Analysis}\\
+\end{center}
+\vskip 16pt \noindent
+{\textbf{Contributors}: }
+\vskip 8pt \noindent
+1.) Luke Lee\\
+2.) Wipada Wannasiwaporn
+
+\vskip 8pt \noindent
+{\textbf{Summary}: }
+\vskip 8pt \noindent
+The goal of this project was to build a model that predicts the sectors that tend to outperform the market return using logistic regression with different penalties and try out different models for comparison. In order to confine our scope of the project, we decided to focus on the two largest sector in US large cap, Technology and Financial. 
+
+\vskip 8pt \noindent
+{\textbf{Data}: }
+\vskip 8pt \noindent
+
+\vskip 8pt \noindent
+{\textbf{Methods \& Algorithms}: }
+\vskip 8pt \noindent
+
+\end{document}  
