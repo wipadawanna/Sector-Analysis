@@ -90,17 +90,55 @@ For the dependent variable, we use a separate model for each sector.\\
 \vskip 8pt \noindent
 
 \textbf{i)} Linear Regression\\
-We first want to make sure that our data can explain the data well, so doing linear regression is one way of doing sanity check on our data. It turns out that the explained variance($R^{2}$) is quite high for this data set, so we know our independent variables can somehow explain our dependent variable.
+We first want to make sure that our data can explain the data well, so doing linear regression is one way of doing sanity check on our data. By using our whole data set, it turns out that the explained variance($R^{2}$) is quite high for this data set, so we know our independent variables can somehow explain our dependent variable. 
+\[ \mathbf{r} \in \R^{T}, \mathbf{F} \in \R^{T \times n}, \mathbf{x} \in \R^{n}
+\]
+\begin{align*}
+\mathbf{r} \sim F_{1}x_{1} + F_{2}x_{2} + ... + F_{n}x_{n}
+\end{align*}
+
+where $\mathbf{r}$ represents our sector return(IYW - dependent variable) and $\mathbf{x}$ represents our economics data(independent variables).\\
+The results of this linear regression shown a high coefficient of determination $R^{2}$.
 
 \begin{center}
-	\includegraphics[scale=0.7]{IYW_linear_reg_withPPI}
+	\includegraphics[scale=0.8]{IYW_linear_reg_withPPI}
 \end{center}
+
+After doing some sanity check, we try to predict whether IYW will beat the market in the next period by assuming we know the exact values of our independent variables. We use the combination of rolling windows of 5, 6, 7, ..., 10 years of training samples to predict the next 1, 2, 3, ..., 6 months return. \\
+After we get our predicted return, we check whether this return is greater than the market and use this as a boolean result of our linear regression. Using this boolean output, we can assess our outperformance accuracy by using
+ 
+\begin{align*}
+Accuracy = \frac{Numbers\ of\ correct\ predictions}{Numbers\ of\ total\ predictions}.
+\end{align*}
+
+Using accuracy as our selected criterion, we ran different combination of windows size and as a result, using 7 years of training data and 2 months of prediction period will give us the highest accuracy for linear regression method.
+
+\newpage
+
+The plots below show the result of prediction using 7 years training data to predict the next 2 months value.
+\begin{center}
+	\includegraphics[scale=0.8]{IYW_linear_reg_rolling}
+\end{center}
+
 
 \textbf{ii)} Logistic Regression\\
 
+\begin{center}
+	\includegraphics[scale=0.9]{IYW_logistic_reg_rolling}
+\end{center}
+
+
 \textbf{iii)} Logistic Regression with Elastic Net\\
 
+\begin{center}
+	\includegraphics[scale=0.9]{IYW_logistic_elastic_rolling}
+\end{center}
+
 \textbf{iv)} Support Vector Machine\\
+
+\begin{center}
+	\includegraphics[scale=0.9]{IYW_SVM_rolling_penalize}
+\end{center}
 
 
 \end{document}  

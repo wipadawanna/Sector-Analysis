@@ -84,7 +84,11 @@ data_length <- nrow(logistic_xts) - train_windows +1
 
 png(filename = "Graphs/IYW_logistic_reg_rolling.png",
     width = 7, height = 5, units = "in", res = 350)
-plot(y = logistic_xts[, "beat_mkt"][train_windows:nrow(logistic_xts)], 
+predict_result <- as.numeric(result_set[, "fitted"] > 0.5)
+actual_result <- logistic_xts[, "beat_mkt"][train_windows:nrow(logistic_xts)]
+validation <- NULL
+for(d in result_set$Date){ validation <- c(validation, actual_result[as.Date(d), ])}
+plot(y = actual_result, 
      x = as.Date(index(logistic_xts)[train_windows:nrow(logistic_xts)]), 
      typ = "l", pch = 19, 
      main = paste("Logistic Reg: Rolling", train_windows, "months for next", predict_window, "months"),
@@ -92,8 +96,10 @@ plot(y = logistic_xts[, "beat_mkt"][train_windows:nrow(logistic_xts)],
 grid()
 lines(y = rep(0.5, data_length), 
       x = as.Date(index(logistic_xts)[train_windows:nrow(logistic_xts)]), 
-                  col = "green")
-points(y = result_set[, "fitted"], x = as.Date(result_set[, "Date"]), col = "red")
+                  col = "blue")
+points(y = result_set[, "fitted"], 
+       x = as.Date(result_set[, "Date"]), 
+       col = ifelse((validation == predict_result), "green", "red"))
 text(y = 1.05, x = result_set[, "Date"][nrow(result_set)/2], 
      labels = paste0("Accuracy=", accuracy), col = "blue")
 dev.off()
@@ -114,7 +120,7 @@ elastic_logistic_reg <- function(input_xts, train_windows, predict_window, alpha
                                  alpha = alpha)
     #plot(train_model_robust, xvar='lambda')
     train_model_robust_cv <- cv.glmnet(x = coredata(train_set[,-c(col_ind(train_set, "beat_mkt"))]), 
-                                       y = coredata(train_set[,"beat_mkt"]))
+                                      y = coredata(train_set[,"beat_mkt"]))
     #plot(train_model_robust_cv)
     lambdamin <- train_model_robust_cv$lambda.min
     lambda1se <- train_model_robust_cv$lambda.1se
@@ -179,7 +185,8 @@ train_windows <- 96
 predict_window <- 3
 alpha <- 0.8
 
-optimal_elastic <- elastic_logistic_reg(logistic_xts, train_windows, predict_window, alpha)
+optimal_elastic <- elastic_logistic_reg(logistic_xts, train_windows, predict_window, 
+                                        alpha)
 accuracy <- optimal_elastic$accuracy
 result_set_elastic <- optimal_elastic$result_set
 
@@ -187,17 +194,27 @@ png(filename = "Graphs/IYW_logistic_elastic_rolling.png",
     width = 7, height = 5, units = "in", res = 350)
 
 data_length <- nrow(logistic_xts) - train_windows + 1
-plot(y = logistic_xts[, "beat_mkt"][train_windows:nrow(logistic_xts)], 
+predict_result <- as.numeric(result_set[, "fitted"] > 0.5)
+actual_result <- logistic_xts[, "beat_mkt"][train_windows:nrow(logistic_xts)]
+validation <- NULL
+for(d in result_set$Date){ validation <- c(validation, actual_result[as.Date(d), ])}
+
+plot(y = actual_result, 
      x = index(logistic_xts)[train_windows:nrow(logistic_xts)], 
-     typ = "l", pch = 19, main = paste("Rolling", train_windows, 
-                                       "months:robust for next", 
-                                       predict_window, "months with alpha = ", alpha),
+     typ = "l", pch = 19, main = substitute(paste("Elastic Net Logistic: Rolling ", train_windows, 
+                                       " months for next ", 
+                                       predict_window, " months with ", alpha, " = ", a), 
+                                       list(train_windows = train_windows, 
+                                            predict_window = predict_window,
+                                            a = alpha)),
      ylab = "Probability", xlab = "Date", ylim = c(0, 1.1))
 grid()
 lines(y = rep(0.5, data_length), 
       x = index(logistic_xts)[train_windows:nrow(logistic_xts)], 
-      col = "green")
-points(y = result_set_elastic[, "fitted"], x = result_set_elastic[, "Date"], col = "red")
+      col = "blue")
+points(y = result_set_elastic[, "fitted"], 
+       x = result_set_elastic[, "Date"], 
+       col = ifelse((validation == predict_result), "green", "red"))
 text(y = 1.05, x = result_set_elastic[, "Date"][nrow(result_set_elastic)/2], 
      labels = paste0("Accuracy=", accuracy), col = "blue")
 

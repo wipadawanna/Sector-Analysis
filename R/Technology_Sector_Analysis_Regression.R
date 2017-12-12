@@ -200,3 +200,121 @@ plot_lm_actual_fitted(enhance_excess_model_reduce$fitted.values,
                       dat_timestamp, 
                       enhance_excess_reduce_res$r.squared,
                       "Excess IYW - Reduced Model w/ PPI Realized vs Fitted")
+
+
+######################## Rolling Windows #########################
+
+general_linear_reg <- function(input_xts, train_windows, predict_window){
+  N <- nrow(input_xts)
+  result_set <- NULL
+  
+  for(i in 1:(N - train_windows - predict_window + 1)){
+    last_index <- (i-1+train_windows)
+    train_set <- input_xts[i:last_index, ]
+    test_set <- input_xts[(last_index+1):(last_index+predict_window), ]
+    
+    train_model <- lm(benchmark~., data = train_set)
+    train_model_sum <- summary(train_model)
+    
+    test_Ax <- predict(train_model, test_set)
+    test_value <- as.numeric(test_Ax)
+    
+    tmp <- data.frame(as.data.frame(as.Date(index(test_set))), 
+                      as.data.frame(test_value), 
+                      as.data.frame(coredata(test_set[, "benchmark"])),
+                      as.data.frame(coredata(test_set[, "SP500"])))
+    colnames(tmp) <- c("Date", "fitted", "actual", "SP500")
+    result_set <- rbind(result_set, tmp)
+  }
+  predicted_values <- as.numeric(result_set[, "fitted"] > result_set[, "SP500"])
+  true_values <- as.numeric(result_set[, "actual"] > result_set[, "SP500"])
+  accuracy <- sum(!xor(true_values, predicted_values))/length(predicted_values)
+  r2 <- rsq(result_set[, "fitted"], result_set[, "actual"])
+  
+  return(list(
+    "accuracy" = accuracy,
+    "r2" = r2,
+    "result_set" = result_set,
+    "train_windows" = train_windows,
+    "predict_window" = predict_window
+  ))
+}
+
+# train_length <- seq(from=60, to=120, by = 12)
+# predict_length <- c(1:12)
+# max_accuracy <- 0.0
+# params_list <- NULL
+# for(train_windows in train_length){
+#   for(predict_window in predict_length){
+#     results <- general_linear_reg(merge_xts, train_windows, predict_window)
+#     if(results$accuracy > max_accuracy){
+#       max_accuracy <- results$accuracy
+#       params_list <- results
+#     }
+#   }
+# }
+# 
+# train_windows <- params_list$train_windows
+# predict_window <- params_list$predict_window
+# result_set <- params_list$result_set
+# accuracy <- params_list$accuracy
+# r2 <- params_list$r2
+
+####### Best Model based on accuracy
+####### train_windows <- 84
+####### predict_window <- 2
+####### accuracy <- 60.26%
+####### r2 <- 0.6906
+
+train_windows <- 84
+predict_window <- 2
+optimal_params <- general_linear_reg(merge_xts, 
+                                     train_windows = train_windows, 
+                                     predict_window = predict_window)
+accuracy <- optimal_params$accuracy
+result_set <- optimal_params$result_set
+r2 <- optimal_params$r2
+
+data_length <- nrow(dat_xts) - train_windows +1
+
+png(filename = "Graphs/IYW_linear_reg_rolling.png",
+    width = 9, height = 8, units = "in", res = 350)
+par(mfrow = c(2, 1))
+plot(y = dat_xts[, "benchmark"][train_windows:nrow(dat_xts)],
+     x = as.Date(index(dat_xts)[train_windows:nrow(dat_xts)]),
+     typ = "l", pch = 19,
+     main = paste("Linear Reg: Rolling", train_windows, "months for next", predict_window, "months"),
+     ylab = "Return", xlab = "Date", ylim = c(-0.3, 0.23))
+grid()
+lines(y = rep(0, data_length),
+      x = as.Date(index(dat_xts)[train_windows:nrow(dat_xts)]),
+      col = "green")
+lines(y = result_set[, "fitted"], 
+      x = as.Date(result_set[, "Date"]), 
+      col = "red")
+text(y = 0.2, x = result_set[, "Date"][nrow(result_set)/2],
+     labels = paste0("R2 =", r2), col = "blue")
+legend("bottom", lty = 1, lwd = 2, bty = 'n',
+       col = c("black", "red"), legend = c("Actual", "Fitted"))
+
+actual_result <- as.numeric(result_set$actual > result_set$SP500)
+predict_result <- as.numeric(result_set$fitted > result_set$SP500)
+plot(x = as.Date(result_set$Date), 
+     y = actual_result,
+     typ = "l", col = "black", 
+     main = paste("Linear Reg: Prediction", train_windows, 
+                         "months for next", predict_window, "months"),
+     xlab = "Date", ylab = "Prediction", ylim = c(0, 1.1))
+grid()
+lines(y = rep(0.5, length(result_set$Date)),
+      x = as.Date(result_set$Date),
+      col = "blue")
+points(x = as.Date(result_set$Date), 
+       y = predict_result,
+      col = ifelse((actual_result == predict_result), "green", "red"))
+text(y = 1.1, x = result_set[, "Date"][nrow(result_set)/2],
+     labels = paste0("Accuracy = ", accuracy), col = "blue")
+par(mfrow = c(1, 1))
+dev.off()
+######################################################################
+
