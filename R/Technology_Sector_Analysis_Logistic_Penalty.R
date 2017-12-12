@@ -110,8 +110,8 @@ elastic_logistic_reg <- function(input_xts, train_windows, predict_window, alpha
   result_set_elastic <- NULL
   for(i in 1:(N - train_windows - predict_window + 1)){
     last_index <- (i-1+train_windows)
-    train_set <- logistic_xts[i:last_index, ]
-    test_set <- logistic_xts[(last_index+1):(last_index+predict_window), ]
+    train_set <- input_xts[i:last_index, ]
+    test_set <- input_xts[(last_index+1):(last_index+predict_window), ]
     
     train_model_robust <- glmnet(x = coredata(train_set[,-c(col_ind(train_set, "beat_mkt"))]),
                                  y = coredata(train_set[,"beat_mkt"]), 

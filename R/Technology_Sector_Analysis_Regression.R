@@ -318,3 +318,107 @@ par(mfrow = c(1, 1))
 dev.off()
 ######################################################################
 
+elastic_linear_reg <- function(input_xts, train_windows, predict_window, alpha){
+  N <- nrow(input_xts)
+  result_set_elastic <- NULL
+  for(i in 1:(N - train_windows - predict_window + 1)){
+    last_index <- (i-1+train_windows)
+    train_set <- input_xts[i:last_index, ]
+    test_set <- input_xts[(last_index+1):(last_index+predict_window), ]
+    
+    train_model_robust <- glmnet(x = coredata(train_set[,-c(col_ind(train_set, "benchmark"))]),
+                                 y = coredata(train_set[,"benchmark"]), 
+                                 family = "gaussian",
+                                 intercept = FALSE,
+                                 alpha = alpha)
+    #plot(train_model_robust, xvar='lambda')
+    train_model_robust_cv <- cv.glmnet(x = coredata(train_set[,-c(col_ind(train_set, "benchmark"))]), 
+                                       y = coredata(train_set[,"benchmark"]))
+    #plot(train_model_robust_cv)
+    lambdamin <- train_model_robust_cv$lambda.min
+    lambda1se <- train_model_robust_cv$lambda.1se
+    
+    robust_coef <- as.data.frame(as.matrix(coef(train_model_robust, 
+                                                s = lambdamin)))
+    
+    test_Ax <- cbind("(Intercept)" = rep(1, predict_window), 
+                     test_set[, -c(col_ind(test_set, "benchmark"))])
+    test_Ax <- as.matrix(test_Ax)%*%as.matrix(robust_coef)
+    test_value <- as.numeric(test_Ax)
+    
+    tmp <- data.frame(as.data.frame(index(test_set)), 
+                      as.data.frame(test_value), 
+                      as.data.frame(coredata(test_set[, "benchmark"])),
+                      as.data.frame(coredata(test_set[, "SP500"])))
+    colnames(tmp) <- c("Date", "fitted", "actual", "SP500")
+    result_set_elastic <- rbind(result_set_elastic, tmp)
+  }
+  
+  predicted_values <- as.numeric(result_set_elastic[, "fitted"] > result_set_elastic[, "SP500"])
+  actual_values <- as.numeric(result_set_elastic[, "actual"] > result_set_elastic[, "SP500"])
+  accuracy <- sum(!xor(predicted_values, actual_values))/length(predicted_values)
+  
+  return(list(
+    "accuracy" = accuracy,
+    "result_set" = result_set_elastic,
+    "train_windows" = train_windows,
+    "predict_window" = predict_window,
+    "alpha" = alpha
+  ))
+}
+
+# train_length <- seq(from=84, to=120, by = 12)
+# predict_length <- c(1:6)
+# alpha <- 0.8
+# max_accuracy <- 0.0
+# params_list <- NULL
+# for(train_windows in train_length){
+#   for(predict_window in predict_length){
+#     results <- elastic_linear_reg(dat_xts, train_windows, predict_window, alpha = alpha)
+#     if(results$accuracy > max_accuracy){
+#       max_accuracy <- results$accuracy
+#       params_list <- results
+#     }
+#   }
+# }
+# train_windows <- params_list$train_windows
+# predict_window <- params_list$predict_window
+# result_set_elastic <- params_list$result_set
+# alpha <- params_list$alpha
+# accuracy <- params_list$accuracy
+
+####### Best Model based on accuracy
+####### train_windows <- 120
+####### predict_window <- 2
+####### accuracy <- 0.617284
+####### alpha <- 0.8
+
+train_windows <- 120
+predict_window <- 2
+alpha <- 0.8
+
+optimal_elastic <- elastic_linear_reg(dat_xts, train_windows, predict_window, 
+                                        alpha)
+accuracy <- optimal_elastic$accuracy
+result_set_elastic <- optimal_elastic$result_set
+
+png(filename = "Graphs/IYW_linear_elastic_rolling.png",
+    width = 7, height = 5, units = "in", res = 350)
+actual_result <- as.numeric(result_set_elastic$actual > result_set_elastic$SP500)
+predict_result <- as.numeric(result_set_elastic$fitted > result_set_elastic$SP500)
+plot(x = as.Date(result_set_elastic$Date), 
+     y = actual_result,
+     typ = "l", col = "black", 
+     main = paste("Elastic Net Linear Reg: Prediction", train_windows, 
+                  "months for next", predict_window, "months"),
+     xlab = "Date", ylab = "Prediction", ylim = c(0, 1.1))
+grid()
+lines(y = rep(0.5, length(result_set_elastic$Date)),
+      x = as.Date(result_set_elastic$Date),
+      col = "blue")
+points(x = as.Date(result_set_elastic$Date), 
+       y = predict_result,
+       col = ifelse((actual_result == predict_result), "green", "red"))
+text(y = 1.1, x = result_set_elastic[, "Date"][nrow(result_set_elastic)/2],
+     labels = paste0("Accuracy = ", accuracy), col = "blue")
+dev.off()

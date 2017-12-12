@@ -100,9 +100,9 @@ We first want to make sure that our data can explain the data well, so doing lin
 where $\mathbf{r}$ represents our sector return(IYW - dependent variable) and $\mathbf{x}$ represents our economics data(independent variables).\\
 The results of this linear regression shown a high coefficient of determination $R^{2}$.
 
-\begin{center}
+\begin{figure}[htb]
 	\includegraphics[scale=0.8]{IYW_linear_reg_withPPI}
-\end{center}
+\end{figure}
 
 After doing some sanity check, we try to predict whether IYW will beat the market in the next period by assuming we know the exact values of our independent variables. We use the combination of rolling windows of 5, 6, 7, ..., 10 years of training samples to predict the next 1, 2, 3, ..., 6 months return. \\
 After we get our predicted return, we check whether this return is greater than the market and use this as a boolean result of our linear regression. Using this boolean output, we can assess our outperformance accuracy by using
@@ -116,29 +116,50 @@ Using accuracy as our selected criterion, we ran different combination of window
 \newpage
 
 The plots below show the result of prediction using 7 years training data to predict the next 2 months value.
-\begin{center}
-	\includegraphics[scale=0.8]{IYW_linear_reg_rolling}
-\end{center}
+\begin{figure}[htb]
+	\includegraphics[width=170mm]{IYW_linear_reg_rolling}
+	\caption{Linear Regression on Rolling 7 years, Predicting 2 months ahead \label{overflow}}
+\end{figure}
 
+\newpage
 
-\textbf{ii)} Logistic Regression\\
+\textbf{ii)} Linear Regression with Elastic Net\\
 
-\begin{center}
+The plots below show the result of prediction using 10 years training data to predict the next 2 months value.
+\begin{figure}[htb]
+	\includegraphics[width=170mm]{IYW_linear_elastic_rolling}
+	\caption{A simple caption \label{overflow}}
+\end{figure}
+
+\newpage
+
+\textbf{iii)} Logistic Regression\\
+The plots below show the result of prediction using 10 years training data to predict the next 2 months value.
+\begin{figure}[htb]
 	\includegraphics[scale=0.9]{IYW_logistic_reg_rolling}
-\end{center}
+	\caption{A simple caption \label{overflow}}
+\end{figure}
 
 
-\textbf{iii)} Logistic Regression with Elastic Net\\
+\textbf{iv)} Logistic Regression with Elastic Net\\
 
-\begin{center}
+\begin{figure}[htb]
 	\includegraphics[scale=0.9]{IYW_logistic_elastic_rolling}
-\end{center}
+\end{figure}
 
-\textbf{iv)} Support Vector Machine\\
+\textbf{v)} Support Vector Machine\\
 
-\begin{center}
+\begin{figure}[htb]
 	\includegraphics[scale=0.9]{IYW_SVM_rolling_penalize}
-\end{center}
+\end{figure}
+
+%==============================================
+
+\newpage
+
+\vskip 8pt \noindent
+{\textbf{Summary \& Comments}: }
+\vskip 8pt \noindent
 
 
 \end{document}  
