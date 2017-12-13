@@ -219,25 +219,25 @@ general_linear_reg <- function(input_xts, train_windows, predict_window){
   ))
 }
 
-train_length <- seq(from=60, to=120, by = 12)
-predict_length <- c(1:12)
-max_accuracy <- 0.0
-params_list <- NULL
-for(train_windows in train_length){
-  for(predict_window in predict_length){
-    results <- general_linear_reg(merge_xts, train_windows, predict_window)
-    if(results$accuracy > max_accuracy){
-      max_accuracy <- results$accuracy
-      params_list <- results
-    }
-  }
-}
+# train_length <- seq(from=60, to=120, by = 12)
+# predict_length <- c(1:12)
+# max_accuracy <- 0.0
+# params_list <- NULL
+# for(train_windows in train_length){
+#   for(predict_window in predict_length){
+#     results <- general_linear_reg(merge_xts, train_windows, predict_window)
+#     if(results$accuracy > max_accuracy){
+#       max_accuracy <- results$accuracy
+#       params_list <- results
+#     }
+#   }
+# }
 
-train_windows <- params_list$train_windows
-predict_window <- params_list$predict_window
-result_set <- params_list$result_set
-accuracy <- params_list$accuracy
-r2 <- params_list$r2
+# train_windows <- params_list$train_windows
+# predict_window <- params_list$predict_window
+# result_set <- params_list$result_set
+# accuracy <- params_list$accuracy
+# r2 <- params_list$r2
 
 ####### Best Model based on accuracy
 ####### train_windows <- 120
@@ -257,25 +257,7 @@ r2 <- optimal_params$r2
 data_length <- nrow(merge_xts) - train_windows +1
 
 png(filename = "Graphs/IYW_linear_reg_rolling.png",
-    width = 9, height = 8, units = "in", res = 350)
-par(mfrow = c(2, 1))
-plot(y = merge_xts[, "benchmark"][train_windows:nrow(merge_xts)],
-     x = as.Date(index(merge_xts)[train_windows:nrow(merge_xts)]),
-     typ = "l", pch = 19,
-     main = paste("Linear Reg: Rolling", train_windows, "months for next", predict_window, "months"),
-     ylab = "Return", xlab = "Date", ylim = c(-0.3, 0.23))
-grid()
-lines(y = rep(0, data_length),
-      x = as.Date(index(merge_xts)[train_windows:nrow(merge_xts)]),
-      col = "green")
-lines(y = result_set[, "fitted"], 
-      x = as.Date(result_set[, "Date"]), 
-      col = "red")
-text(y = 0.2, x = result_set[, "Date"][nrow(result_set)/2],
-     labels = paste0("R2 =", r2), col = "blue")
-legend("bottom", lty = 1, lwd = 2, bty = 'n',
-       col = c("black", "red"), legend = c("Actual", "Fitted"))
-
+    width = 7, height = 5, units = "in", res = 350)
 actual_result <- as.numeric(result_set$actual > result_set$SP500)
 predict_result <- as.numeric(result_set$fitted > result_set$SP500)
 plot(x = as.Date(result_set$Date), 
@@ -293,7 +275,6 @@ points(x = as.Date(result_set$Date),
       col = ifelse((actual_result == predict_result), "green", "red"))
 text(y = 1.1, x = result_set[, "Date"][nrow(result_set)/2],
      labels = paste0("Accuracy = ", accuracy), col = "blue")
-par(mfrow = c(1, 1))
 dev.off()
 ######################################################################
 

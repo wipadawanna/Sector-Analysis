@@ -148,7 +148,7 @@ actual_result <- logistic_xts[, "beat_mkt"][train_windows:nrow(logistic_xts)]
 validation <- NULL
 for(d in result_set_svm$Date){ validation <- c(validation, actual_result[as.Date(d), ])}
 
-png(filename = "Graphs/IYW_SVM_rolling_penalize.png",
+png(filename = "Graphs/IYW_SVM_rolling_penalize_2.png",
     width = 7, height = 5, units = "in", res = 350)
 plot(y = actual_result, 
      x = index(logistic_xts)[train_windows:nrow(logistic_xts)], 
