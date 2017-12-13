@@ -48,24 +48,24 @@ general_logistic_reg <- function(input_xts, train_windows, predict_window){
   ))
 }
 
-# train_length <- seq(from=60, to=120, by = 12)
-# predict_length <- c(1:12)
-# max_accuracy <- 0.0
-# params_list <- NULL
-# for(train_windows in train_length){
-#   for(predict_window in predict_length){
-#     results <- general_logistic_reg(logistic_xts, train_windows, predict_window)
-#     if(results$accuracy > max_accuracy){
-#       max_accuracy <- results$accuracy
-#       params_list <- results
-#     }
-#   }
-# }
-# 
-# train_windows <- params_list$train_windows
-# predict_window <- params_list$predict_window
-# result_set <- params_list$result_set
-# accuracy <- params_list$accuracy
+train_length <- seq(from=60, to=120, by = 12)
+predict_length <- c(1:12)
+max_accuracy <- 0.0
+params_list <- NULL
+for(train_windows in train_length){
+  for(predict_window in predict_length){
+    results <- general_logistic_reg(logistic_xts, train_windows, predict_window)
+    if(results$accuracy > max_accuracy){
+      max_accuracy <- results$accuracy
+      params_list <- results
+    }
+  }
+}
+
+train_windows <- params_list$train_windows
+predict_window <- params_list$predict_window
+result_set <- params_list$result_set
+accuracy <- params_list$accuracy
 
 ####### Best Model based on accuracy
 ####### train_windows <- 120

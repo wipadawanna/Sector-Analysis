@@ -2,6 +2,7 @@ rm(list = ls())
 source("Performance_Analysis.R")
 library(stats)
 library(xts)
+library(glmnet)
 library(quantmod)
 library(car)
 
@@ -144,63 +145,41 @@ for (file in files_name){
   merge_xts <- merge.xts(merge_xts, get(file), join='inner')
   merge_xts_excess <- merge.xts(merge_xts_excess, get(file), join='inner')
 }
-
-logistic_bool <- as.numeric(merge_xts_excess$excess_ret > 0)
+logistic_bool <- as.numeric(merge_xts$benchmark > merge_xts$SP500)
 logistic_xts <- cbind("beat_mkt" = logistic_bool, 
-                                 merge_xts_excess[, -c(col_ind(merge_xts_excess, "excess_ret"))])
-#**************************************
-save(merge_xts, file="merge_xts.rdata")
-# write.csv(
-#   data.frame("Date"=as.Date(index(merge_xts)), coredata(merge_xts)), 
-#   file = "tech_raw_data.csv", row.names = F)
-save(merge_xts_excess, file="merge_xts_excess.rdata")
+                      merge_xts[, -c(col_ind(merge_xts, "benchmark"))])
+
 save(logistic_xts, file = "logistic_xts.rdata")
 
 enhance_model <- lm(benchmark~., data = merge_xts)
 enhance_res <- summary(enhance_model)
 enhance_res
-vif(enhance_model)
+
+#############################################
+vif_model <- vif(enhance_model)
+rm_col <- NULL
+for(colnm in names(vif_model)){
+  if(vif_model[colnm] > 5){
+    rm_col <- c(rm_col, col_ind(merge_xts, colnm))
+  }
+}
+rm_col
+merge_xts <- merge_xts[, -rm_col]
+##############################################
+save(merge_xts, file="merge_xts.rdata")
+
+enhance_model_2 <- lm(benchmark~., data = merge_xts)
+enhance_res_2 <- summary(enhance_model)
+enhance_res_2
 
 png(filename = "Graphs/IYW_linear_reg_withPPI.png",
     width = 7, height = 5, units = "in", res = 350)
-plot_lm_actual_fitted(enhance_model$fitted.values, 
+plot_lm_actual_fitted(enhance_model_2$fitted.values, 
                       merge_xts$benchmark, 
                       dat_timestamp, 
-                      enhance_res$r.squared,
+                      enhance_res_2$r.squared,
                       "IYW - Regression Model w/ PPI: Realized vs Fitted")
 dev.off()
-
-enhance_model_reduce <- lm(benchmark
-                           ~ CSUSHPINSA+FEDFUNDS+PCE+XOI.Index+CSENT+PAYEMS+SP500+TELECOMEXPORT+PPI_SOFTWARE
-                       , data = merge_xts)
-enhance_reduce_res <- summary(enhance_model_reduce)
-enhance_reduce_res
-vif(enhance_model_reduce)
-
-enhance_excess_model <- lm(excess_ret ~. , data = merge_xts_excess)
-enhance_excess_res <- summary(enhance_excess_model)
-enhance_excess_res
-vif(enhance_excess_model)
-
-enhance_excess_model_reduce <- lm(excess_ret~CSUSHPINSA+PCE+XOI.Index+CSENT+PAYEMS+SP500
-                                  +TELECOMEXPORT+PPI_SOFTWARE
-                                     , data = merge_xts_excess)
-enhance_excess_reduce_res <- summary(enhance_excess_model_reduce)
-enhance_excess_reduce_res
-vif(enhance_excess_model_reduce)
-
-plot_lm_actual_fitted(enhance_excess_model$fitted.values, 
-                      excess_return, 
-                      dat_timestamp, 
-                      enhance_excess_res$r.squared,
-                      "Excess IYW - Full Model w/ PPI Realized vs Fitted")
-
-plot_lm_actual_fitted(enhance_excess_model_reduce$fitted.values, 
-                      excess_return, 
-                      dat_timestamp, 
-                      enhance_excess_reduce_res$r.squared,
-                      "Excess IYW - Reduced Model w/ PPI Realized vs Fitted")
-
 
 ######################## Rolling Windows #########################
 
@@ -240,34 +219,34 @@ general_linear_reg <- function(input_xts, train_windows, predict_window){
   ))
 }
 
-# train_length <- seq(from=60, to=120, by = 12)
-# predict_length <- c(1:12)
-# max_accuracy <- 0.0
-# params_list <- NULL
-# for(train_windows in train_length){
-#   for(predict_window in predict_length){
-#     results <- general_linear_reg(merge_xts, train_windows, predict_window)
-#     if(results$accuracy > max_accuracy){
-#       max_accuracy <- results$accuracy
-#       params_list <- results
-#     }
-#   }
-# }
-# 
-# train_windows <- params_list$train_windows
-# predict_window <- params_list$predict_window
-# result_set <- params_list$result_set
-# accuracy <- params_list$accuracy
-# r2 <- params_list$r2
+train_length <- seq(from=60, to=120, by = 12)
+predict_length <- c(1:12)
+max_accuracy <- 0.0
+params_list <- NULL
+for(train_windows in train_length){
+  for(predict_window in predict_length){
+    results <- general_linear_reg(merge_xts, train_windows, predict_window)
+    if(results$accuracy > max_accuracy){
+      max_accuracy <- results$accuracy
+      params_list <- results
+    }
+  }
+}
+
+train_windows <- params_list$train_windows
+predict_window <- params_list$predict_window
+result_set <- params_list$result_set
+accuracy <- params_list$accuracy
+r2 <- params_list$r2
 
 ####### Best Model based on accuracy
-####### train_windows <- 84
-####### predict_window <- 2
-####### accuracy <- 60.26%
-####### r2 <- 0.6906
+####### train_windows <- 120
+####### predict_window <- 3
+####### accuracy <- 62.916%
+####### r2 <- 0.6612
 
-train_windows <- 84
-predict_window <- 2
+train_windows <- 120
+predict_window <- 3
 optimal_params <- general_linear_reg(merge_xts, 
                                      train_windows = train_windows, 
                                      predict_window = predict_window)
@@ -275,19 +254,19 @@ accuracy <- optimal_params$accuracy
 result_set <- optimal_params$result_set
 r2 <- optimal_params$r2
 
-data_length <- nrow(dat_xts) - train_windows +1
+data_length <- nrow(merge_xts) - train_windows +1
 
 png(filename = "Graphs/IYW_linear_reg_rolling.png",
     width = 9, height = 8, units = "in", res = 350)
 par(mfrow = c(2, 1))
-plot(y = dat_xts[, "benchmark"][train_windows:nrow(dat_xts)],
-     x = as.Date(index(dat_xts)[train_windows:nrow(dat_xts)]),
+plot(y = merge_xts[, "benchmark"][train_windows:nrow(merge_xts)],
+     x = as.Date(index(merge_xts)[train_windows:nrow(merge_xts)]),
      typ = "l", pch = 19,
      main = paste("Linear Reg: Rolling", train_windows, "months for next", predict_window, "months"),
      ylab = "Return", xlab = "Date", ylim = c(-0.3, 0.23))
 grid()
 lines(y = rep(0, data_length),
-      x = as.Date(index(dat_xts)[train_windows:nrow(dat_xts)]),
+      x = as.Date(index(merge_xts)[train_windows:nrow(merge_xts)]),
       col = "green")
 lines(y = result_set[, "fitted"], 
       x = as.Date(result_set[, "Date"]), 
@@ -318,7 +297,7 @@ par(mfrow = c(1, 1))
 dev.off()
 ######################################################################
 
-elastic_linear_reg <- function(input_xts, train_windows, predict_window, alpha){
+elastic_linear_reg <- function(input_xts, train_windows, predict_window, alp){
   N <- nrow(input_xts)
   result_set_elastic <- NULL
   for(i in 1:(N - train_windows - predict_window + 1)){
@@ -330,7 +309,7 @@ elastic_linear_reg <- function(input_xts, train_windows, predict_window, alpha){
                                  y = coredata(train_set[,"benchmark"]), 
                                  family = "gaussian",
                                  intercept = FALSE,
-                                 alpha = alpha)
+                                 alpha = alp)
     #plot(train_model_robust, xvar='lambda')
     train_model_robust_cv <- cv.glmnet(x = coredata(train_set[,-c(col_ind(train_set, "benchmark"))]), 
                                        y = coredata(train_set[,"benchmark"]))
@@ -363,41 +342,44 @@ elastic_linear_reg <- function(input_xts, train_windows, predict_window, alpha){
     "result_set" = result_set_elastic,
     "train_windows" = train_windows,
     "predict_window" = predict_window,
-    "alpha" = alpha
+    "alpha" = alp
   ))
 }
 
-# train_length <- seq(from=84, to=120, by = 12)
-# predict_length <- c(1:6)
-# alpha <- 0.8
-# max_accuracy <- 0.0
-# params_list <- NULL
-# for(train_windows in train_length){
-#   for(predict_window in predict_length){
-#     results <- elastic_linear_reg(dat_xts, train_windows, predict_window, alpha = alpha)
-#     if(results$accuracy > max_accuracy){
-#       max_accuracy <- results$accuracy
-#       params_list <- results
-#     }
-#   }
-# }
-# train_windows <- params_list$train_windows
-# predict_window <- params_list$predict_window
-# result_set_elastic <- params_list$result_set
-# alpha <- params_list$alpha
-# accuracy <- params_list$accuracy
+train_length <- seq(from=84, to=120, by = 12)
+predict_length <- c(1:6)
+list_alpha <- seq(0, 1, by = 0.2)
+max_accuracy <- 0.0
+params_list <- NULL
+for(train_windows in train_length){
+  for(predict_window in predict_length){
+    for(alpha in list_alpha){
+      results <- elastic_linear_reg(merge_xts, train_windows, predict_window, alpha)
+      if(results$accuracy > max_accuracy){
+        max_accuracy <- results$accuracy
+        params_list <- results
+      }
+    }
+  }
+}
+train_windows <- params_list$train_windows
+predict_window <- params_list$predict_window
+result_set_elastic <- params_list$result_set
+alpha <- params_list$alpha
+accuracy <- params_list$accuracy
 
 ####### Best Model based on accuracy
-####### train_windows <- 120
-####### predict_window <- 2
-####### accuracy <- 0.617284
+####### train_windows <- 108
+####### predict_window <- 1
+####### accuracy <- 60.63%
 ####### alpha <- 0.8
+####### lambdamin
+#######
 
-train_windows <- 120
-predict_window <- 2
+train_windows <- 108
+predict_window <- 1
 alpha <- 0.8
-
-optimal_elastic <- elastic_linear_reg(dat_xts, train_windows, predict_window, 
+optimal_elastic <- elastic_linear_reg(merge_xts, train_windows, predict_window, 
                                         alpha)
 accuracy <- optimal_elastic$accuracy
 result_set_elastic <- optimal_elastic$result_set
