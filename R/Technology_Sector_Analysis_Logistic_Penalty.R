@@ -48,24 +48,24 @@ general_logistic_reg <- function(input_xts, train_windows, predict_window){
   ))
 }
 
-train_length <- seq(from=60, to=120, by = 12)
-predict_length <- c(1:12)
-max_accuracy <- 0.0
-params_list <- NULL
-for(train_windows in train_length){
-  for(predict_window in predict_length){
-    results <- general_logistic_reg(logistic_xts, train_windows, predict_window)
-    if(results$accuracy > max_accuracy){
-      max_accuracy <- results$accuracy
-      params_list <- results
-    }
-  }
-}
-
-train_windows <- params_list$train_windows
-predict_window <- params_list$predict_window
-result_set <- params_list$result_set
-accuracy <- params_list$accuracy
+# train_length <- seq(from=60, to=120, by = 12)
+# predict_length <- c(1:12)
+# max_accuracy <- 0.0
+# params_list <- NULL
+# for(train_windows in train_length){
+#   for(predict_window in predict_length){
+#     results <- general_logistic_reg(logistic_xts, train_windows, predict_window)
+#     if(results$accuracy > max_accuracy){
+#       max_accuracy <- results$accuracy
+#       params_list <- results
+#     }
+#   }
+# }
+# 
+# train_windows <- params_list$train_windows
+# predict_window <- params_list$predict_window
+# result_set <- params_list$result_set
+# accuracy <- params_list$accuracy
 
 ####### Best Model based on accuracy
 ####### train_windows <- 120
@@ -105,7 +105,7 @@ text(y = 1.05, x = result_set[, "Date"][nrow(result_set)/2],
 dev.off()
 ######################################################################
 
-elastic_logistic_reg <- function(input_xts, train_windows, predict_window, alpha){
+elastic_logistic_reg <- function(input_xts, train_windows, predict_window, alpha, ld){
   N <- nrow(input_xts)
   result_set_elastic <- NULL
   for(i in 1:(N - train_windows - predict_window + 1)){
@@ -117,16 +117,10 @@ elastic_logistic_reg <- function(input_xts, train_windows, predict_window, alpha
                                  y = coredata(train_set[,"beat_mkt"]), 
                                  family = "binomial",
                                  intercept = FALSE,
-                                 alpha = alpha)
-    #plot(train_model_robust, xvar='lambda')
-    train_model_robust_cv <- cv.glmnet(x = coredata(train_set[,-c(col_ind(train_set, "beat_mkt"))]), 
-                                      y = coredata(train_set[,"beat_mkt"]))
-    #plot(train_model_robust_cv)
-    lambdamin <- train_model_robust_cv$lambda.min
-    lambda1se <- train_model_robust_cv$lambda.1se
+                                 alpha = alpha, lambda = ld)
     
     robust_coef <- as.data.frame(as.matrix(coef(train_model_robust, 
-                                                s = lambdamin)))
+                                                s = ld)))
     
     test_Ax <- cbind("(Intercept)" = rep(1, predict_window), 
                      test_set[, -c(col_ind(test_set, "beat_mkt"))])
@@ -149,24 +143,31 @@ elastic_logistic_reg <- function(input_xts, train_windows, predict_window, alpha
     "result_set" = result_set_elastic,
     "train_windows" = train_windows,
     "predict_window" = predict_window,
-    "alpha" = alpha
+    "alpha" = alpha,
+    "lambda" = ld
   ))
 }
   
 # train_length <- seq(from=84, to=120, by = 12)
 # predict_length <- c(1:6)
-# alpha_list <- seq(0, 1, by = 0.2)
-# max_accuracy <- 0.0
-# params_list <- NULL
+alpha_list <- seq(0, 1, by = 0.2)
+list_lambda <- seq(0.001, 0.1, by = 0.005)
+max_accuracy <- 0.0
+params_list <- NULL
 # for(train_windows in train_length){
 #   for(predict_window in predict_length){
-#     for(alpha in alpha_list){
-#       results <- elastic_logistic_reg(logistic_xts, train_windows, predict_window, alpha = alpha)
-#       if(results$accuracy > max_accuracy){
-#         max_accuracy <- results$accuracy
-#         params_list <- results
-#       }
-#     }
+    for(alpha in alpha_list){
+      for(lambda in list_lambda){
+        train_windows <- 120
+        predict_window <- 2
+        results <- elastic_logistic_reg(logistic_xts, train_windows, predict_window, 
+                                        alpha = alpha, ld = lambda)
+        if(results$accuracy > max_accuracy){
+          max_accuracy <- results$accuracy
+          params_list <- results
+        }
+      }
+    }
 #   }
 # }
 # train_windows <- params_list$train_windows
@@ -176,17 +177,19 @@ elastic_logistic_reg <- function(input_xts, train_windows, predict_window, alpha
 # accuracy <- params_list$accuracy
 
 ####### Best Model based on accuracy
-####### train_windows <- 96
-####### predict_window <- 3
-####### accuracy <- 59.615%
-####### alpha <- 0.8
+####### train_windows <- 120
+####### predict_window <- 2
+####### accuracy <- 0.6234568
+####### alpha <- 0
+####### lambda <- 0.001
 
-train_windows <- 96
-predict_window <- 3
-alpha <- 0.8
-
+train_windows <- 120
+predict_window <- 2
+alpha <- 0
+lambda <- 0.001
+  
 optimal_elastic <- elastic_logistic_reg(logistic_xts, train_windows, predict_window, 
-                                        alpha)
+                                        alpha, lambda)
 accuracy <- optimal_elastic$accuracy
 result_set_elastic <- optimal_elastic$result_set
 
@@ -201,13 +204,13 @@ for(d in result_set$Date){ validation <- c(validation, actual_result[as.Date(d),
 
 plot(y = actual_result, 
      x = index(logistic_xts)[train_windows:nrow(logistic_xts)], 
-     typ = "l", pch = 19, main = substitute(paste("Elastic Net Logistic: Rolling ", train_windows, 
-                                       " months for next ", 
-                                       predict_window, " months with ", alpha, " = ", a), 
-                                       list(train_windows = train_windows, 
-                                            predict_window = predict_window,
-                                            a = alpha)),
+     typ = "l", pch = 19, main = "",
      ylab = "Probability", xlab = "Date", ylim = c(0, 1.1))
+title(main = substitute(paste("Elastic Net Logistic Reg: Prediction ", tw, 
+                              " months for next ", pd, " months"), 
+                        list(tw = train_windows, pd = predict_window)),
+      sub = substitute(paste(lambda, " = ", ld, ", ", alpha, " = ", ap), 
+                       list(ld = lambda, ap = alpha)))
 grid()
 lines(y = rep(0.5, data_length), 
       x = index(logistic_xts)[train_windows:nrow(logistic_xts)], 

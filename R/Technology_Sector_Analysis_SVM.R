@@ -98,31 +98,33 @@ svm_model_kernel <- function(input_xts, train_windows, predict_window,
 
 # train_length <- seq(from=84, to=120, by = 12)
 # predict_length <- c(1:12)
-# cost_list <- c(0.01,0.1,1,10,100,1000)
-# gamma_list <- 10^(-3:3)
-# max_accuracy <- 0.0
-# params_list <- NULL
-# for(train_windows in train_length){
+cost_list <- c(0.01,0.1,1,10,100,1000)
+gamma_list <- 10^(-3:3)
+max_accuracy <- 0.0
+params_list <- NULL
+#for(train_windows in train_length){
 #   for(predict_window in predict_length){
-#     for(C in cost_list){
-#       for(gamma in gamma_list){
-#         results <- svm_model_kernel(logistic_xts, train_windows, predict_window, 
-#                                     kernel = "radial", cost = C, gamma = gamma)
-#         
-#         if(results$accuracy > max_accuracy){
-#           max_accuracy <- results$accuracy
-#           params_list <- results
-#         }
-#       }
-#     }
+      for(C in cost_list){
+        for(gamma in gamma_list){
+          train_windows <- 120
+          predict_window <- 2
+          results <- svm_model_kernel(logistic_xts, train_windows, predict_window,
+                                      kernel = "radial", cost = C, gamma = gamma)
+    
+          if(results$accuracy > max_accuracy){
+            max_accuracy <- results$accuracy
+            params_list <- results
+          }
+        }
+      }
 #   }
 # }
-# train_windows <- params_list$train_windows
-# predict_window <- params_list$predict_window
-# result_set <- params_list$result_set
-# accuracy <- params_list$accuracy
-# gamma <- params_list$gamma
-# cost <- params_list$cost
+train_windows <- params_list$train_windows
+predict_window <- params_list$predict_window
+result_set <- params_list$result_set
+accuracy <- params_list$accuracy
+gamma <- params_list$gamma
+cost <- params_list$cost
 
 ####### Best Model based on accuracy
 ####### train_windows <- 96

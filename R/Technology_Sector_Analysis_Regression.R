@@ -186,7 +186,8 @@ dev.off()
 general_linear_reg <- function(input_xts, train_windows, predict_window){
   N <- nrow(input_xts)
   result_set <- NULL
-  
+  coef_set <- data.frame(NULL)
+  signf_set <- data.frame(NULL)
   for(i in 1:(N - train_windows - predict_window + 1)){
     last_index <- (i-1+train_windows)
     train_set <- input_xts[i:last_index, ]
@@ -194,6 +195,19 @@ general_linear_reg <- function(input_xts, train_windows, predict_window){
     
     train_model <- lm(benchmark~., data = train_set)
     train_model_sum <- summary(train_model)
+    
+    model_coef <- coef(train_model_sum)[, "Estimate"]
+    model_signf <- coef(train_model_sum)[, "Pr(>|t|)"]
+    model_date <- as.Date(index(input_xts[(last_index+1), ]))
+    model_colnm <- rownames(coef(train_model_sum))
+    
+    coef_set <- rbind(coef_set, as.vector(model_coef))
+    signf_set <- rbind(signf_set, as.vector(model_signf))
+    
+    #print(head(coef_set))
+    colnames(coef_set) <- model_colnm
+    colnames(signf_set) <- model_colnm
+    #print(head(coef_set))
     
     test_Ax <- predict(train_model, test_set)
     test_value <- as.numeric(test_Ax)
@@ -205,6 +219,12 @@ general_linear_reg <- function(input_xts, train_windows, predict_window){
     colnames(tmp) <- c("Date", "fitted", "actual", "SP500")
     result_set <- rbind(result_set, tmp)
   }
+  model_index <- c((train_windows+1):(N - predict_window +1))
+  coef_set_xts <- xts(coef_set, order.by = index(input_xts)[model_index])
+  signf_set_xts <- xts(signf_set, order.by = index(input_xts)[model_index])
+  
+  #print(colnames(coef_set))
+  
   predicted_values <- as.numeric(result_set[, "fitted"] > result_set[, "SP500"])
   true_values <- as.numeric(result_set[, "actual"] > result_set[, "SP500"])
   accuracy <- sum(!xor(true_values, predicted_values))/length(predicted_values)
@@ -215,7 +235,9 @@ general_linear_reg <- function(input_xts, train_windows, predict_window){
     "r2" = r2,
     "result_set" = result_set,
     "train_windows" = train_windows,
-    "predict_window" = predict_window
+    "predict_window" = predict_window,
+    "coef_set" = coef_set_xts,
+    "signf_set" = signf_set_xts
   ))
 }
 
@@ -253,9 +275,11 @@ optimal_params <- general_linear_reg(merge_xts,
 accuracy <- optimal_params$accuracy
 result_set <- optimal_params$result_set
 r2 <- optimal_params$r2
+coef_set <- optimal_params$coef_set
+signf_set <- optimal_params$signf_set
 
+#***************** Plots ********************
 data_length <- nrow(merge_xts) - train_windows +1
-
 png(filename = "Graphs/IYW_linear_reg_rolling.png",
     width = 7, height = 5, units = "in", res = 350)
 actual_result <- as.numeric(result_set$actual > result_set$SP500)
@@ -276,9 +300,84 @@ points(x = as.Date(result_set$Date),
 text(y = 1.1, x = result_set[, "Date"][nrow(result_set)/2],
      labels = paste0("Accuracy = ", accuracy), col = "blue")
 dev.off()
+
+#***************** Plots ********************
+model_attributes <- colnames(signf_set)
+N_attr <- length(model_attributes)
+timestamp <- index(signf_set)
+colors <- rainbow(N_attr)
+threshold <- 0.2
+
+png(filename = "Graphs/IYW_linear_reg_signf.png",
+    width = 8, height = 6, units = "in", res = 350)
+plot(0, typ = "l", xaxt='n',bty='n',pch='',
+     ylab='Mean P-Value',xlab='', 
+     main = paste("Mean P-Value of Linear Regression on", train_windows, "months"),
+     ylim =c(0, 1), 
+     xlim =c(1, N_attr))
+axis(1, at=c(1:N_attr), 
+     labels=c(1:N_attr),
+     las = 2, cex.axis = 0.8)
+grid()
+points(y = colMeans(signf_set), x = c(1:N_attr),
+     col = colors, pch = 19)
+abline(h = threshold, col = "grey")
+text(y = colMeans(signf_set), x = c(1:N_attr), 
+     pos = 3, labels = model_attributes, cex = 0.5)
+dev.off()
+
+selected_signf_attr <- colnames(signf_set)[as.vector(colMeans(signf_set) < threshold)]
+colors <- rainbow(length(selected_signf_attr))
+
+png(filename = "Graphs/IYW_linear_reg_signf_2.png",
+    width = 8, height = 6, units = "in", res = 350)
+plot(0, typ = "l", xaxt='n',bty='n',pch='',
+     ylab='P-Value',xlab='', 
+     main = paste("P-Value over time: Linear Regression on", train_windows, "months"),
+     ylim =c(0, 0.6), 
+     xlim =as.Date(c(first(timestamp)-365, last(timestamp))))
+axis(1, at=as.Date(timestamp)[seq(2, length(timestamp), by = 10)], 
+     labels=as.Date(timestamp)[seq(2, length(timestamp), by = 10)],
+     las = 2, cex.axis = 0.8)
+grid()
+for(i in 1:length(selected_signf_attr)){
+  lines(y = signf_set[, selected_signf_attr[i]],
+        x = timestamp, col = colors[i])
+}
+legend("topleft", bty = 'n', legend = selected_signf_attr, 
+       col = colors[1:length(selected_signf_attr)], lty = 1, lwd = 2, cex = 0.5)
+dev.off()
+
+#***************** Plots ********************
+#model_attributes <- colnames(coef_set)
+model_attributes <- selected_signf_attr
+N_attr <- length(model_attributes)
+timestamp <- index(coef_set)
+
+png(filename = "Graphs/IYW_linear_reg_coef.png",
+    width = 8, height = 6, units = "in", res = 350)
+plot(0, typ = "l", xaxt='n',bty='n',pch='',
+     ylab='Coef',xlab='', 
+     main = paste("Coefficients over time: Linear Regression on", train_windows, "months"),
+     ylim =c(min(coef_set[, model_attributes]), 
+             max(coef_set[, model_attributes])), 
+     xlim =as.Date(c(first(timestamp)-365, last(timestamp))))
+axis(1, at=as.Date(timestamp)[seq(2, length(timestamp), by = 10)], 
+     labels=as.Date(timestamp)[seq(2, length(timestamp), by = 10)],
+     las = 1, cex.axis = 0.8)
+grid()
+colors <- rainbow(N_attr)
+for(i in 1:N_attr){
+  lines(y = coef_set[, model_attributes[i]],
+        x = timestamp, col = colors[i], lwd = 2)
+}
+legend("topleft", bty = 'n', legend = model_attributes, 
+       col = colors, lty = 1, lwd = 2, cex = 0.5)
+dev.off()
+
 ######################################################################
 
-elastic_linear_reg <- function(input_xts, train_windows, predict_window, alp){
+elastic_linear_reg <- function(input_xts, train_windows, predict_window, alp, ld){
   N <- nrow(input_xts)
   result_set_elastic <- NULL
   for(i in 1:(N - train_windows - predict_window + 1)){
@@ -290,16 +389,10 @@ elastic_linear_reg <- function(input_xts, train_windows, predict_window, alp){
                                  y = coredata(train_set[,"benchmark"]), 
                                  family = "gaussian",
                                  intercept = FALSE,
-                                 alpha = alp)
-    #plot(train_model_robust, xvar='lambda')
-    train_model_robust_cv <- cv.glmnet(x = coredata(train_set[,-c(col_ind(train_set, "benchmark"))]), 
-                                       y = coredata(train_set[,"benchmark"]))
-    #plot(train_model_robust_cv)
-    lambdamin <- train_model_robust_cv$lambda.min
-    lambda1se <- train_model_robust_cv$lambda.1se
+                                 alpha = alp, lambda = ld)
     
     robust_coef <- as.data.frame(as.matrix(coef(train_model_robust, 
-                                                s = lambdamin)))
+                                                s = ld)))
     
     test_Ax <- cbind("(Intercept)" = rep(1, predict_window), 
                      test_set[, -c(col_ind(test_set, "benchmark"))])
@@ -323,45 +416,49 @@ elastic_linear_reg <- function(input_xts, train_windows, predict_window, alp){
     "result_set" = result_set_elastic,
     "train_windows" = train_windows,
     "predict_window" = predict_window,
-    "alpha" = alp
+    "alpha" = alp,
+    "lambda" = ld
   ))
 }
 
-train_length <- seq(from=84, to=120, by = 12)
-predict_length <- c(1:6)
+# train_length <- seq(from=84, to=120, by = 12)
+# predict_length <- c(1:6)
 list_alpha <- seq(0, 1, by = 0.2)
+list_lambda <- seq(0.001, 0.1, by = 0.005)
 max_accuracy <- 0.0
 params_list <- NULL
-for(train_windows in train_length){
-  for(predict_window in predict_length){
+#for(train_windows in train_length){
+#  for(predict_window in predict_length){
     for(alpha in list_alpha){
-      results <- elastic_linear_reg(merge_xts, train_windows, predict_window, alpha)
-      if(results$accuracy > max_accuracy){
-        max_accuracy <- results$accuracy
-        params_list <- results
+      for(lambda in list_lambda){
+        train_windows <- 120
+        predict_window <- 3
+        results <- elastic_linear_reg(merge_xts, train_windows, predict_window, alpha, lambda)
+        if(results$accuracy > max_accuracy){
+          max_accuracy <- results$accuracy
+          params_list <- results
+        } 
       }
     }
-  }
-}
+#  }
+#}
 train_windows <- params_list$train_windows
 predict_window <- params_list$predict_window
 result_set_elastic <- params_list$result_set
 alpha <- params_list$alpha
 accuracy <- params_list$accuracy
+lambda <- params_list$lambda
 
 ####### Best Model based on accuracy
-####### train_windows <- 108
-####### predict_window <- 1
-####### accuracy <- 60.63%
-####### alpha <- 0.8
-####### lambdamin
+####### train_windows <- 120
+####### predict_window <- 3
+####### accuracy <- 57.9%
+####### alpha <- 0.2
+####### lambda <- 0.001
 #######
 
-train_windows <- 108
-predict_window <- 1
-alpha <- 0.8
 optimal_elastic <- elastic_linear_reg(merge_xts, train_windows, predict_window, 
-                                        alpha)
+                                        alpha, lambda)
 accuracy <- optimal_elastic$accuracy
 result_set_elastic <- optimal_elastic$result_set
 
@@ -372,9 +469,13 @@ predict_result <- as.numeric(result_set_elastic$fitted > result_set_elastic$SP50
 plot(x = as.Date(result_set_elastic$Date), 
      y = actual_result,
      typ = "l", col = "black", 
-     main = paste("Elastic Net Linear Reg: Prediction", train_windows, 
-                  "months for next", predict_window, "months"),
+     main = "",
      xlab = "Date", ylab = "Prediction", ylim = c(0, 1.1))
+title(main = substitute(paste("Elastic Net Linear Reg: Prediction ", tw, 
+                              " months for next ", pd, " months"), 
+                        list(tw = train_windows, pd = predict_window)),
+      sub = substitute(paste(lambda, " = ", ld, ", ", alpha, " = ", ap), 
+                       list(ld = lambda, ap = alpha)))
 grid()
 lines(y = rep(0.5, length(result_set_elastic$Date)),
       x = as.Date(result_set_elastic$Date),
